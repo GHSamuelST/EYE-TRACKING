@@ -1,59 +1,79 @@
 import sys
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, 
-    QPushButton, QLabel, QStackedWidget
-)
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
 
-class HomeScreen(QWidget):
-    def __init__(self, navigate_callback):
-        super().__init__()
-        layout = QVBoxLayout()
-        
-        titulo = QLabel("🏠 Tela Inicial")
-        titulo.setStyleSheet("font-size: 30px; font-weight: bold;")
-        
-        btn_ir_config = QPushButton("Ir para Configurações ⚙️")
-        btn_ir_config.clicked.connect(lambda: navigate_callback(1)) 
-        
-        layout.addWidget(titulo)
-        layout.addWidget(btn_ir_config)
-        self.setLayout(layout)
-
-class SettingsScreen(QWidget):
-    def __init__(self, navigate_callback):
-        super().__init__()
-        layout = QVBoxLayout()
-        
-        titulo = QLabel("⚙️ Configurações do Sistema")
-        titulo.setStyleSheet("font-size: 24px; font-weight: bold; color: #4CAF50;")
-        
-        btn_voltar = QPushButton("⬅️ Voltar para o Início")
-        btn_voltar.clicked.connect(lambda: navigate_callback(0))
-        
-        layout.addWidget(titulo)
-        layout.addWidget(btn_voltar)
-        self.setLayout(layout)
-
-class MainWindow(QMainWindow):
+class TransparentTestApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("App com Navegação")
-        self.resize(400, 300)
 
-        self.stacked_widget = QStackedWidget()
-        self.setCentralWidget(self.stacked_widget)
+        # --- CONFIGURAÇÃO DO WIDGET CENTRAL ---
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Um layout vertical padrão
+        layout = QVBoxLayout()
+        central_widget.setLayout(layout)
 
-        tela_inicio = HomeScreen(self.mudar_tela)
-        tela_configs = SettingsScreen(self.mudar_tela)
+        # --- CRIANDO O BOTÃO ---
+        self.btn_toggle = QPushButton("Sair da Tela Cheia")
+        self.btn_toggle.setFixedSize(250, 60)
+        self.btn_toggle.setStyleSheet("""
+            QPushButton {
+                background-color: #ff4757;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 30px;
+                border: 2px solid #ffffff;
+            }
+            QPushButton:hover { background-color: #ff6b81; }
+        """)
+        
+        # Conecta o clique à nossa função de alternância
+        self.btn_toggle.clicked.connect(self.alternar_modo_janela)
 
-        self.stacked_widget.addWidget(tela_inicio)
-        self.stacked_widget.addWidget(tela_configs) 
+        # Adiciona o botão ao layout e o centraliza perfeitamente
+        layout.addWidget(self.btn_toggle, alignment=Qt.AlignmentFlag.AlignCenter)
 
-    def mudar_tela(self, index):
-        self.stacked_widget.setCurrentIndex(index)
+        # --- ESTADO INICIAL: TELA CHEIA E TRANSPARENTE ---
+        self.tela_cheia = True
+        self.ativar_tela_cheia_transparente()
+
+    def ativar_tela_cheia_transparente(self):
+        # 1. Remove a barra superior e botões de minimizar/fechar
+        # Adicionamos o WindowStaysOnTopHint para garantir que fique por cima de tudo
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        
+        # 2. Torna o fundo do aplicativo translúcido/transparente
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        
+        # 3. Força a janela a ocupar a tela inteira (F11)
+        self.showFullScreen()
+
+    def alternar_modo_janela(self):
+        if self.tela_cheia:
+            # --- SAIR DO F11 E VOLTAR AO NORMAL ---
+            self.tela_cheia = False
+            self.btn_toggle.setText("Voltar para Tela Cheia")
+            
+            # Devolve a barra superior padrão do sistema operacional
+            self.setWindowFlags(Qt.WindowType.Window)
+            
+            # Desativa a transparência (se não desativar, o fundo fica preto na janela normal)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+            
+            # Define um tamanho normal de janela
+            self.resize(800, 600)
+            
+            # Mostra a janela em modo normal (cancela o showFullScreen)
+            self.showNormal()
+        else:
+            # --- VOLTAR PARA O F11 TRANSPARENTE ---
+            self.tela_cheia = True
+            self.btn_toggle.setText("Sair da Tela Cheia")
+            self.ativar_tela_cheia_transparente()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
+    window = TransparentTestApp()
     sys.exit(app.exec())

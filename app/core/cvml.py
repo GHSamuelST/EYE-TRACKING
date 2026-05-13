@@ -4,7 +4,6 @@ import numpy as np
 import time
 import math
 import statistics
-import csv
 
 # --- FUNÇÃO DE MAPEAMENTO PARA CORRIGIR EIXOS INVERTIDOS ---
 def mapear_eixo(valor_atual, val_calib_a, val_calib_b, tela_a, tela_b, limite_min, limite_max):
@@ -69,14 +68,15 @@ def main():
     # --- VARIÁVEIS DE MÉTRICAS ---
     latencias = []
     coordenadas_validacao = []
-    TEMPO_VALIDACAO = 5.0 
+    TEMPO_VALIDACAO = 6.0 
 
     print("Iniciando... Pressione 'S' para calibrar ou clique no botão Fechar.")
 
     while cap.isOpened():
         start_time = time.time()
         ret, frame = cap.read()
-        if not ret: break
+        if not ret: 
+            break
         
         frame = cv2.flip(frame, 1)
         h_f, w_f, _ = frame.shape
@@ -117,7 +117,8 @@ def main():
                 target = pontos_alvo[ponto_atual]
                 tx, ty = int(target[0] * w_f), int(target[1] * h_f)
                 
-                if dwell_timer == 0: dwell_timer = time.time()
+                if dwell_timer == 0: 
+                    dwell_timer = time.time()
                 decorrido = time.time() - dwell_timer
                 
                 if decorrido > 0.7: 
@@ -165,7 +166,8 @@ def main():
                     tx, ty = int(w_f * 0.5), int(h_f * 0.5)
                     cv2.circle(frame, (tx, ty), 20, (0, 0, 255), -1)
                     
-                    if dwell_timer == 0: dwell_timer = time.time()
+                    if dwell_timer == 0: 
+                        dwell_timer = time.time()
                     decorrido = time.time() - dwell_timer
 
                     cv2.putText(frame, f"VALIDACAO: FIXE NO CENTRO ({int(TEMPO_VALIDACAO - decorrido)}s)", (20, 50), 1, 1.5, (0, 165, 255), 2)
@@ -215,7 +217,8 @@ def main():
             latencias.append(latencia_atual_ms)
 
         cv2.imshow('Sistema de Eye Tracking', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'): break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cap.release()
     cv2.destroyAllWindows()

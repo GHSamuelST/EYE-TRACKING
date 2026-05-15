@@ -36,16 +36,20 @@ class HomeView(QWidget):
         grid_layout = QGridLayout()
         grid_layout.setSpacing(30)
         grid_layout.setAlignment(Qt.AlignmentFlag.AlignCenter) # Grid centralizada
+        
+        self.lista_cards = []
+        
+        card1 = ActionCard("Começar Calibração", "Ajuste a precisão do rastreamento...", 'fa5s.expand', True)
+        card2 = ActionCard("Falar (Voz)", "Acesse o teclado preditivo...", 'fa5s.headset', False)
+        card3 = ActionCard("Abrir Aplicativos", "Navegue pela web...", 'fa5s.th-large', False)
+        card4 = ActionCard("Configurações", "Personalize a sensibilidade...", 'fa5s.sliders-h', False)
 
-        card1 = ActionCard("Começar Calibração", "Ajuste a precisão do rastreamento ocular para sua posição atual.", 'fa5s.expand', True)
-        card2 = ActionCard("Falar (Voz)", "Acesse o teclado preditivo e frases rápidas para comunicação.", 'fa5s.headset', False)
-        card3 = ActionCard("Abrir Aplicativos", "Navegue pela web, entretenimento e ferramentas de automação.", 'fa5s.th-large', False)
-        card4 = ActionCard("Configurações", "Personalize a sensibilidade, tempo de permanência e aparência.", 'fa5s.sliders-h', False)
+        self.lista_cards.extend([card1, card2, card3, card4]) # Salva para o Magnetismo achar!
 
-        grid_layout.addWidget(card1, 0, 0)
-        grid_layout.addWidget(card2, 0, 1)
-        grid_layout.addWidget(card3, 1, 0)
-        grid_layout.addWidget(card4, 1, 1)
+        for i, card in enumerate(self.lista_cards):
+            row = i // 2
+            col = i % 2
+            grid_layout.addWidget(card, row, col)
 
         layout.addLayout(grid_layout)
         

@@ -12,4 +12,6 @@ dependencies = [
     "pyautogui>=0.9.54",
     "qtawesome>=1.4.2",
     "pyside6-fluent-widgets>=1.11.2",
+    "scipy>=1.17.1",
+    "keyboard>=0.13.5",
 ]

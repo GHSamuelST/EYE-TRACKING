@@ -124,13 +124,21 @@ class EyeControlApp(FluentWindow):
         self.motor.start()
 
     def iniciar_tela_calibracao(self):
-        """ Chamado quando a Thread avisa que a câmera e os modelos carregaram """
-        self.splash_ref.close() # Fecha a tela de loading
-        
-        # Inicia a visualização da calibração em tela cheia
+        """ Inicia ou reinicia a tela de calibração """
+        # 1. Se veio da tela de Loading, fecha ela
+        if hasattr(self, 'splash_ref') and self.splash_ref is not None:
+            self.splash_ref.close()
+            self.splash_ref = None  # Limpa a referência para não tentar fechar de novo
+            
+        # 2. Se veio da Home, esconde a Home e a bolinha do olhar
+        if self.isVisible():
+            self.gaze_overlay.hide()
+            self.hide() 
+            
+        # 3. Abre a tela de calibração gigante
         self.calib_view.showFullScreen()
         
-        # Manda o motor iniciar a lógica matemática da calibração
+        # 4. Dá o gatilho pro motor começar a simular os 5 pontos de novo
         self.motor.iniciar_calibracao()
 
     def iniciar_home(self):
@@ -202,9 +210,29 @@ class EyeControlApp(FluentWindow):
 
             # 3. EXECUÇÃO DO CLIQUE
             if progresso >= 1.0:
-                print(f"✅ CLIQUE EXECUTADO: {alvo_capturado.title_label.text()}")
-                # Tempo de espera (Cooldown) para não clicar no botão várias vezes num piscar
+                nome_botao = alvo_capturado.title_label.text()
+                print(f"✅ CLIQUE EXECUTADO: {nome_botao}")
+                
+                # --- ROTEAMENTO DAS AÇÕES ---
+                if nome_botao == "Começar Calibração":
+                    self.iniciar_tela_calibracao()
+                    
+                elif nome_botao == "Iniciar com Windows":
+                    # Faremos a lógica de Registro do Windows depois
+                    print("Lógica do Windows em breve!")
+                    
+                elif nome_botao == "Configurações":
+                    # Faremos a tela de configs depois
+                    print("Abrindo configurações!")
+
+                # ----------------------------
+
+                # Tempo de espera (Cooldown) para não clicar várias vezes
                 self.tempo_inicio_foco = time.time() + 1.5 
+                
+                # Limpa o alvo atual e zera a bolinha para não bugar o visual
+                self.alvo_atual = None 
+                self.gaze_overlay.atualizar_posicao(x_desenho, y_desenho, progresso=0.0)
         else:
             # Fora da gravidade de qualquer botão: Movimento Livre normal (Bolinha vazia)
             self.alvo_atual = None

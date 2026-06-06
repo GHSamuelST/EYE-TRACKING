@@ -40,7 +40,7 @@ class HomeView(QWidget):
         self.lista_cards = []
         
         card1 = ActionCard("Começar Calibração", "Ajuste a precisão do rastreamento...", 'fa5s.expand', True)
-        card2 = ActionCard("Falar (Voz)", "Acesse o teclado preditivo...", 'fa5s.headset', False)
+        card2 = ActionCard("Iniciar com Windows", "Ative para o app iniciar junto com o Windows", 'fa5b.windows', False)
         card3 = ActionCard("Abrir Aplicativos", "Navegue pela web...", 'fa5s.th-large', False)
         card4 = ActionCard("Configurações", "Personalize a sensibilidade...", 'fa5s.sliders-h', False)
 

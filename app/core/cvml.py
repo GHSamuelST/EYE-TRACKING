@@ -13,7 +13,7 @@ import threading
 import keyboard
 
 class OneEuroFilterVector:
-    def __init__(self, t0, x0, min_cutoff=0.0, beta=0.0, d_cutoff=1.0):
+    def __init__(self, t0, x0, min_cutoff=0.0005, beta=0.0, d_cutoff=1.0):
         """
         min_cutoff: Reduz o jitter (tremedeira) quando o olho está parado. Valores menores = mais suave (mas mais lento).
         beta: Reduz o lag (atraso) quando o olho se move rápido. Valores maiores = mais responsivo (mas pode tremer em movimento).
@@ -125,9 +125,12 @@ h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # === Nose-only landmark indices (for stable up/down eye sphere tracking) ===
 # These landmarks are near the nose and are less affected by lateral head movement
-nose_indices = [4, 45, 275, 220, 440, 1, 5, 51, 281, 44, 274, 241, 
-                461, 125, 354, 218, 438, 195, 167, 393, 165, 391,
-                3, 248]
+nose_indices = [
+    10, 151, 9, 8,       # Testa (Forehead)
+    168, 6, 197, 195,    # Ponte do nariz (Nose bridge)
+    5, 4, 1,             # Ponta superior do nariz
+    133, 362             # Cantos internos dos olhos (ancoragem lateral)
+]
 
 # ===== NEW: File writing for screen position =====
 screen_position_file = "C:/Storage/Google Drive/Software/EyeTracker3DPython/screen_position.txt"
@@ -450,7 +453,6 @@ def convert_gaze_to_screen_coordinates(combined_gaze_direction, calibration_offs
     raw_yaw_deg = yaw_deg
     raw_pitch_deg = pitch_deg
 
-    
     # Specify degrees at which screen border will be reached
     yawDegrees = 5 * 3  # x degrees left or right
     pitchDegrees = 2.0 * 2.5  # x degrees up or down
@@ -458,6 +460,26 @@ def convert_gaze_to_screen_coordinates(combined_gaze_direction, calibration_offs
     # Apply calibration offsets
     yaw_deg += calibration_offset_yaw
     pitch_deg += calibration_offset_pitch
+
+    # ==== NOVO: Modificadores de Sensibilidade (Ganhos) ====
+    
+    # 1. Sensibilidade Vertical (Eixo Y)
+    if pitch_deg < 0:
+        pitch_deg *= 1.5  # Facilita chegar na base da tela (barra de tarefas)
+    
+    # 2. Sensibilidade Horizontal (Eixo X)
+    # Um valor de 1.4 significa que o movimento rende 40% mais para os lados.
+    yaw_multiplier = 1.5 
+    yaw_deg *= yaw_multiplier
+    
+    # Opcional: Se perceber que ir para um lado específico é mais difícil,
+    # você pode separar a lógica igual fizemos com o pitch:
+    # if yaw_deg < 0: 
+    #     yaw_deg *= 1.5  # Mais força para a Esquerda
+    # elif yaw_deg > 0:
+    #     yaw_deg *= 1.3  # Mais força para a Direita
+
+    # =========================================================
 
     # Map to full screen resolution
     screen_x = int(((yaw_deg + yawDegrees) / (2 * yawDegrees)) * MONITOR_WIDTH)
@@ -862,7 +884,7 @@ while cap.isOpened():
                 gaze_filter = OneEuroFilterVector(
                     t0=current_time, 
                     x0=raw_combined_direction, 
-                    min_cutoff=0.05, # Diminua para tirar mais tremedeira (ex: 0.01)
+                    min_cutoff=0.00005, # Diminua para tirar mais tremedeira (ex: 0.01)
                     beta=5.0         # Aumente se o mouse estiver com atraso (ex: 10.0)
                 )
                 avg_combined_direction = raw_combined_direction

@@ -284,14 +284,9 @@ class EyeControlApp(FluentWindow):
         """ Esconde o app principal e mostra apenas o menu lateral """
         self.hide() # Fica totalmente transparente para o Windows
         
-        # Posiciona o menu na direita da tela
+        # Menu agora cobre a tela inteira: cards são ancorados nas bordas/cantos
         screen_geo = QApplication.primaryScreen().geometry()
-        self.floating_menu.setGeometry(
-            screen_geo.width() - self.floating_menu.width(), 
-            0, 
-            self.floating_menu.width(), 
-            screen_geo.height()
-        )
+        self.floating_menu.setGeometry(screen_geo)
         self.floating_menu.show()
         
         # --- A MÁGICA DA CAMADA (Z-ORDER) ---

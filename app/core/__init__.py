@@ -1,1 +1,1 @@
-from .cvml_mouse import EyeTrackerThread
+from .cvml import EyeTrackerThread

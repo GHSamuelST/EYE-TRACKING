@@ -78,8 +78,8 @@ class SettingsView(QWidget):
         # Slider X (Horizontal) - Valores: 50 a 300 (Representa 0.5x a 3.0x)
         self.slider_x = Slider(Qt.Orientation.Horizontal)
         self.slider_x.setRange(50, 300)
-        self.slider_x.setValue(150) # Padrão: 1.5x
-        self.val_x = BodyLabel("1.5x")
+        self.slider_x.setValue(130) # Padrão: 1.3x
+        self.val_x = BodyLabel("1.3x")
         self.val_x.setFixedWidth(40)
         self.slider_x.valueChanged.connect(lambda v: self.atualizar_label(self.val_x, v / 100.0, "x"))
         card_sensibilidade.add_slider_row("Eixo Horizontal (X):", self.slider_x, self.val_x)
@@ -87,8 +87,8 @@ class SettingsView(QWidget):
         # Slider Y (Vertical)
         self.slider_y = Slider(Qt.Orientation.Horizontal)
         self.slider_y.setRange(50, 300)
-        self.slider_y.setValue(150) # Padrão: 1.5x
-        self.val_y = BodyLabel("1.5x")
+        self.slider_y.setValue(100) # Padrão: 1.0x
+        self.val_y = BodyLabel("1.0x")
         self.val_y.setFixedWidth(40)
         self.slider_y.valueChanged.connect(lambda v: self.atualizar_label(self.val_y, v / 100.0, "x"))
         card_sensibilidade.add_slider_row("Eixo Vertical (Y):", self.slider_y, self.val_y)

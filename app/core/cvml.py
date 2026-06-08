@@ -20,7 +20,7 @@ class OneEuroFilterVector:
     Filtro 1 Euro para vetores 3D. Reduz tremedeira (jitter) sem introduzir
     lag perceptível em movimentos rápidos.
     """
-    def __init__(self, t0, x0, min_cutoff=0.0005, beta=0.0, d_cutoff=1.0):
+    def __init__(self, t0, x0, min_cutoff=0.00005, beta=0.0, d_cutoff=1.0):
         self.min_cutoff = min_cutoff
         self.beta = beta
         self.d_cutoff = d_cutoff

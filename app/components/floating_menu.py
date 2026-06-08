@@ -42,6 +42,9 @@ class FloatingMenu(QWidget):
       - Fechar Aplicativo -> canto superior direito
       - Rolar para Cima   -> meio superior
       - Rolar para Baixo  -> meio inferior
+      - Anterior          -> meio esquerdo
+      - Próximo           -> meio direito
+      - Clicar            -> canto inferior esquerdo
       - Tela Cheia (Home) -> canto inferior direito
     """
 
@@ -69,6 +72,9 @@ class FloatingMenu(QWidget):
         self.card_fechar_app = MiniActionCard("Fechar Aplicativo", 'fa5s.times-circle', False, self)
         self.card_scroll_up = MiniActionCard("Rolar para Cima", 'fa5s.arrow-up', False, self)
         self.card_scroll_down = MiniActionCard("Rolar para Baixo", 'fa5s.arrow-down', False, self)
+        self.card_anterior = MiniActionCard("Anterior", 'fa5s.chevron-left', False, self)
+        self.card_proximo = MiniActionCard("Próximo", 'fa5s.chevron-right', False, self)
+        self.card_clicar = MiniActionCard("Clicar", 'fa5s.mouse-pointer', True, self)
         self.card_voltar = MiniActionCard("Tela Cheia (Home)", 'fa5s.expand-arrows-alt', True, self)
 
         self.lista_cards.extend([
@@ -77,6 +83,9 @@ class FloatingMenu(QWidget):
             self.card_back_page,
             self.card_voltar,
             self.card_fechar_app,
+            self.card_anterior,
+            self.card_proximo,
+            self.card_clicar,
         ])
 
     def resizeEvent(self, event):
@@ -110,6 +119,24 @@ class FloatingMenu(QWidget):
         self.card_scroll_down.move(
             (w - self.card_scroll_down.width()) // 2,
             h - self.card_scroll_down.height() - m,
+        )
+
+        # Meio esquerdo (centralizado verticalmente)
+        self.card_anterior.move(
+            m,
+            (h - self.card_anterior.height()) // 2,
+        )
+
+        # Meio direito (centralizado verticalmente)
+        self.card_proximo.move(
+            w - self.card_proximo.width() - m,
+            (h - self.card_proximo.height()) // 2,
+        )
+
+        # Canto inferior esquerdo (clique do mouse)
+        self.card_clicar.move(
+            m,
+            h - self.card_clicar.height() - m,
         )
 
         # Canto inferior direito (volta para tela cheia)

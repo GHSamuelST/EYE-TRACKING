@@ -106,6 +106,15 @@ class EyeControlApp(FluentWindow):
         self.TEMPO_CLIQUE = 1.2    # Segundos focados para clicar
         self.RAIO_GRAVIDADE = 180  # Distância magnética
 
+        # --- ESTADO DO CLIQUE ARMADO (botão "Clicar" do menu flutuante) ---
+        # Quando o usuário olha o botão "Clicar" e completa o dwell,
+        # entramos em modo armado por CLICK_AIM_DELAY segundos. Durante
+        # esse tempo, ignoramos o magnetismo dos cards e disparamos um
+        # pyautogui.click() na posição final do olhar.
+        self.click_armed = False
+        self.click_arm_time = 0.0
+        self.CLICK_AIM_DELAY = 1.5
+
         # Inicializa as Views
         self.home_view = HomeView(self)
         self.calib_view = CalibrationView()
@@ -185,7 +194,25 @@ class EyeControlApp(FluentWindow):
 
     def receber_coordenadas(self, x, y):
         # A bolinha agora é OS-level, não precisamos mais converter para local!
-        
+
+        # --- MODO CLIQUE ARMADO ---
+        # Enquanto armado: ignora cards e mostra contagem regressiva visual.
+        # Ao expirar o delay de mira, dispara um clique real onde o olhar está.
+        if self.click_armed:
+            tempo_armado = time.time() - self.click_arm_time
+            progresso = min(1.0, tempo_armado / self.CLICK_AIM_DELAY)
+            self.gaze_overlay.atualizar_posicao(x, y, progresso=progresso)
+            if tempo_armado >= self.CLICK_AIM_DELAY:
+                self.click_armed = False
+                try:
+                    pyautogui.click(x, y)
+                except Exception as e:
+                    print(f"[Click] Falha ao clicar: {e}")
+                self.alvo_atual = None
+                self.tempo_inicio_foco = time.time() + 0.5
+                self.gaze_overlay.atualizar_posicao(x, y, progresso=0.0)
+            return
+
         alvo_capturado = None
         menor_distancia = self.RAIO_GRAVIDADE
 
@@ -256,6 +283,19 @@ class EyeControlApp(FluentWindow):
                     
                 elif nome_botao == "Voltar Página":
                     pyautogui.press('browserback') # Usa press em vez de hotkey
+
+                elif nome_botao == "Anterior":
+                    pyautogui.press('left')  # YouTube/players: vídeo anterior / volta
+
+                elif nome_botao == "Próximo":
+                    pyautogui.press('right')  # YouTube/players: próximo vídeo / avança
+
+                elif nome_botao == "Clicar":
+                    # Arma um clique: usuário tem CLICK_AIM_DELAY segundos para mirar
+                    self.click_armed = True
+                    self.click_arm_time = time.time()
+                    self.alvo_atual = None
+                    return
                     
                 elif nome_botao == "Tela Cheia (Home)":
                     self.sair_modo_windows()

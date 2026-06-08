@@ -3,19 +3,20 @@ import os
 import ctypes
 import time
 import math
+import json
 
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
 from PySide6.QtGui import QIcon, QPainter, QColor, QPen, QBrush
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, QSettings
 import qtawesome as qta
 from qfluentwidgets import FluentWindow, NavigationItemPosition, setTheme, Theme, IndeterminateProgressRing, SubtitleLabel
 import subprocess
 import pyautogui
 
 # Importações limpas graças aos nossos arquivos __init__.py
-from views import HomeView, CalibrationView, SettingsView, AppsView
+from views import HomeView, CalibrationView, SettingsView, AppsView, OnboardingView
 from core import EyeTrackerThread
-from components import ActionCard, FloatingMenu
+from components import ActionCard, FloatingMenu, StatusIndicator
 
 os.environ["QT_API"] = "pyside6"
 
@@ -99,7 +100,10 @@ class EyeControlApp(FluentWindow):
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("tcc.samuel.eyecontrol.1_0")
         except: 
             pass
-        
+
+        # --- ARMAZENAMENTO PERSISTENTE (sliders + calibração) ---
+        self.settings = QSettings("EyeControl", "EyeControlOS")
+
         # --- VARIÁVEIS DINÂMICAS DE INTERAÇÃO (Serão alteradas pelas Configs) ---
         self.alvo_atual = None
         self.tempo_inicio_foco = 0
@@ -120,9 +124,17 @@ class EyeControlApp(FluentWindow):
         self.calib_view = CalibrationView()
         self.settings_view = SettingsView(self)
         self.apps_view = AppsView(self) # NOVA
+        self.onboarding_view = OnboardingView()
+        self.onboarding_view.iniciar_clicado.connect(self._on_onboarding_concluido)
         
         self.floating_menu = FloatingMenu() # NOVO (Menu lateral OS)
-        
+
+        # --- Indicador de status do rastreamento (OS-level) ---
+        self.status_indicator = StatusIndicator()
+        screen_geo = QApplication.primaryScreen().geometry()
+        self.status_indicator.move(screen_geo.width() - self.status_indicator.width() - 20, 20)
+        self.status_indicator.hide()
+
         # Overlay da bolinha (Agora OS-level)
         self.gaze_overlay = GazeOverlay(None)
         screen_geo = QApplication.primaryScreen().geometry()
@@ -134,6 +146,7 @@ class EyeControlApp(FluentWindow):
         # Conecta os Sinais da Tela de Configurações
         self.settings_view.voltar_clicado.connect(lambda: self.switchTo(self.home_view))
         self.settings_view.config_atualizada.connect(self.aplicar_configuracoes)
+        self.settings_view.recalibrar_clicado.connect(self.iniciar_tela_calibracao)
 
         # --- MOTOR DE RASTREAMENTO OCULAR (Thread Mock / Mouse) ---
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -143,7 +156,12 @@ class EyeControlApp(FluentWindow):
         self.motor.calibracao_ponto.connect(self.calib_view.atualizar_progresso)
         self.motor.fase_validacao.connect(self.calib_view.atualizar_validacao) 
         self.motor.calibracao_concluida.connect(self.iniciar_home)
+        self.motor.calibracao_concluida.connect(self._salvar_calibracao)
         self.motor.coordenadas_atualizadas.connect(self.receber_coordenadas)
+        self.motor.face_detectada.connect(self._on_face_detectada)
+
+        # Restaura sliders salvos antes de a thread começar a rodar
+        self._restaurar_configuracoes_salvas()
 
         self.motor.start()
 
@@ -151,21 +169,77 @@ class EyeControlApp(FluentWindow):
         """ Atualiza o app baseado nos sliders arrastados na SettingsView """
         self.TEMPO_CLIQUE = configs["dwell_time"]
         self.RAIO_GRAVIDADE = configs["gravidade"]
-        
+
         # Atualiza o motor se o método existir na Thread
         if hasattr(self.motor, 'atualizar_sensibilidade'):
             self.motor.atualizar_sensibilidade(configs["sens_x"], configs["sens_y"])
 
+        # Persiste
+        self.settings.setValue("sliders", json.dumps(configs))
+
+    def _restaurar_configuracoes_salvas(self):
+        """Recarrega sliders e calibração do disco (se existirem)."""
+        sliders_raw = self.settings.value("sliders", None)
+        if sliders_raw:
+            try:
+                configs = json.loads(sliders_raw) if isinstance(sliders_raw, str) else sliders_raw
+                self.settings_view.carregar_configuracoes(configs)
+            except (ValueError, TypeError) as e:
+                print(f"[Settings] Não foi possível restaurar sliders: {e}")
+
+        calib_raw = self.settings.value("calibration", None)
+        if calib_raw:
+            try:
+                state = json.loads(calib_raw) if isinstance(calib_raw, str) else calib_raw
+                if self.motor.set_calibration_state(state):
+                    self._calibracao_carregada_do_disco = True
+                    print("[Settings] Calibração restaurada do disco.")
+            except (ValueError, TypeError) as e:
+                print(f"[Settings] Não foi possível restaurar calibração: {e}")
+
+    def _salvar_calibracao(self):
+        """Persiste o estado de calibração após uma sessão de 5 pontos completa."""
+        state = self.motor.get_calibration_state()
+        if state:
+            self.settings.setValue("calibration", json.dumps(state))
+            print("[Settings] Calibração salva.")
+
+    def _on_face_detectada(self, presente):
+        """Atualiza o pill de status sempre que o motor ganha/perde rastreamento."""
+        if not self.status_indicator.isVisible():
+            return
+        self.status_indicator.set_state("tracking" if presente else "no_face")
+
     def iniciar_tela_calibracao(self):
         """ Inicia ou reinicia a calibração """
+        # Fecha o splash em qualquer caso (boot inicial)
         if hasattr(self, 'splash_ref') and self.splash_ref is not None:
             self.splash_ref.close()
-            self.splash_ref = None 
-            
+            self.splash_ref = None
+
+        # Se uma calibração foi restaurada do disco no boot, pula direto pra Home
+        if getattr(self, "_calibracao_carregada_do_disco", False) and not self.isVisible() and not self.calib_view.isVisible():
+            self._calibracao_carregada_do_disco = False
+            self.iniciar_home()
+            return
+
         if self.isVisible():
             self.gaze_overlay.hide()
-            self.hide() 
-            
+            self.status_indicator.hide()
+            self.hide()
+
+        # --- Primeira execução: mostra onboarding antes da calibração ---
+        if not self.settings.value("first_run_done", False, type=bool):
+            self.onboarding_view.showFullScreen()
+            return
+
+        self.calib_view.showFullScreen()
+        self.motor.iniciar_calibracao()
+
+    def _on_onboarding_concluido(self):
+        """Usuário clicou em 'Iniciar Calibração' na tela de boas-vindas."""
+        self.settings.setValue("first_run_done", True)
+        self.onboarding_view.close()
         self.calib_view.showFullScreen()
         self.motor.iniciar_calibracao()
 
@@ -180,17 +254,24 @@ class EyeControlApp(FluentWindow):
         self.navigationInterface.show() 
         
         # --- REGISTRO DAS TELAS NA BARRA LATERAL ---
-        self.addSubInterface(self.home_view, qta.icon('fa5s.home', color='#111827'), 'Home')
-        
-        # NOVO: Registrando a tela de Aplicativos para o switchTo encontrá-la!
-        self.addSubInterface(self.apps_view, qta.icon('fa5s.th-large', color='#111827'), 'Aplicativos')
-        
-        self.addSubInterface(self.settings_view, qta.icon('fa5s.cog', color='#111827'), 'Configurações', position=NavigationItemPosition.BOTTOM)
+        # Evita registrar duas vezes ao recalibrar
+        if self.home_view not in self.navigationInterface.findChildren(type(self.home_view)):
+            try:
+                self.addSubInterface(self.home_view, qta.icon('fa5s.home', color='#111827'), 'Home')
+                self.addSubInterface(self.apps_view, qta.icon('fa5s.th-large', color='#111827'), 'Aplicativos')
+                self.addSubInterface(self.settings_view, qta.icon('fa5s.cog', color='#111827'), 'Configurações', position=NavigationItemPosition.BOTTOM)
+            except Exception:
+                pass
         
         self.switchTo(self.home_view)
         
         self.gaze_overlay.show()
         self.gaze_overlay.raise_()
+
+        # Mostra o pill de status (verde/amarelo conforme rosto detectado)
+        self.status_indicator.set_state("tracking")
+        self.status_indicator.show()
+        self.status_indicator.raise_()
 
     def receber_coordenadas(self, x, y):
         # A bolinha agora é OS-level, não precisamos mais converter para local!
@@ -332,6 +413,7 @@ class EyeControlApp(FluentWindow):
         # --- A MÁGICA DA CAMADA (Z-ORDER) ---
         # Isso arranca a bolinha de trás do menu e joga para a frente de tudo!
         self.gaze_overlay.raise_()
+        self.status_indicator.raise_()
         
     def sair_modo_windows(self):
         """ Retorna ao app em tela cheia """
@@ -341,6 +423,7 @@ class EyeControlApp(FluentWindow):
         
         # Garante que a bolinha continua na frente de tudo ao voltar
         self.gaze_overlay.raise_()
+        self.status_indicator.raise_()
 
 
 if __name__ == "__main__":

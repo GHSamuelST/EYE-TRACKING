@@ -127,6 +127,27 @@ def _gaze_to_yaw_pitch(combined_dir):
     return yaw_deg, pitch_deg
 
 
+def _response_curve(value, half_range, deadzone_frac=0.04, exponent=1.3):
+    """
+    Mapeia um ângulo cru (yaw/pitch em graus) para um valor normalizado em [-1, 1],
+    com:
+      - deadzone: se |value/half_range| <= deadzone_frac, retorna 0 (cursor estagna no centro)
+      - curva expo: após a deadzone, aplica sign * |x|^exponent (lento perto do centro,
+        rápido nas bordas)
+    """
+    if half_range <= 1e-6:
+        return 0.0
+    norm = max(-1.0, min(1.0, value / half_range))
+    sign = 1.0 if norm >= 0 else -1.0
+    mag = abs(norm)
+    if mag <= deadzone_frac:
+        return 0.0
+    # Re-escala [deadzone, 1] -> [0, 1] para não haver salto na saída da deadzone
+    mag = (mag - deadzone_frac) / (1.0 - deadzone_frac)
+    mag = mag ** exponent
+    return sign * mag
+
+
 # ===================== EyeTrackerThread (interface Qt) =====================
 
 # Landmarks do nariz/testa usados para a pose estável
@@ -156,6 +177,7 @@ class EyeTrackerThread(QThread):
     calibracao_ponto = Signal(int, float)
     fase_validacao = Signal(int)
     calibracao_concluida = Signal()
+    face_detectada = Signal(bool)  # True quando rosto presente, False caso contrário
 
     TEMPO_POR_PONTO = 1.5     # segundos focado em cada ponto
     TEMPO_VALIDACAO = 3.0     # segundos da fase de validação final
@@ -218,6 +240,46 @@ class EyeTrackerThread(QThread):
             self._sens_x = float(sens_x)
             self._sens_y = float(sens_y)
 
+    # ---- Persistência da calibração ----
+    def get_calibration_state(self):
+        """
+        Retorna um dict serializável com o estado de calibração atual,
+        ou None se ainda não houve calibração válida.
+        """
+        if not self._spheres_locked or self._left_offset_local is None or self._right_offset_local is None:
+            return None
+        return {
+            "offset_yaw": float(self._offset_yaw),
+            "offset_pitch": float(self._offset_pitch),
+            "yaw_degrees": float(self._yaw_degrees),
+            "pitch_degrees": float(self._pitch_degrees),
+            "left_offset_local": np.asarray(self._left_offset_local, dtype=float).tolist(),
+            "right_offset_local": np.asarray(self._right_offset_local, dtype=float).tolist(),
+            "left_calib_scale": float(self._left_calib_scale) if self._left_calib_scale else None,
+            "right_calib_scale": float(self._right_calib_scale) if self._right_calib_scale else None,
+        }
+
+    def set_calibration_state(self, state):
+        """Restaura calibração a partir de um dict salvo. Retorna True se aplicou."""
+        if not state:
+            return False
+        try:
+            self._offset_yaw = float(state["offset_yaw"])
+            self._offset_pitch = float(state["offset_pitch"])
+            self._yaw_degrees = float(state["yaw_degrees"])
+            self._pitch_degrees = float(state["pitch_degrees"])
+            self._left_offset_local = np.asarray(state["left_offset_local"], dtype=float)
+            self._right_offset_local = np.asarray(state["right_offset_local"], dtype=float)
+            self._left_calib_scale = state.get("left_calib_scale")
+            self._right_calib_scale = state.get("right_calib_scale")
+            self._spheres_locked = True
+            self.em_calibracao = False
+            self._reiniciar_calibracao = False
+            return True
+        except (KeyError, TypeError, ValueError) as e:
+            print(f"[EyeTracker] Falha ao restaurar calibração: {e}")
+            return False
+
     # ------------------- Loop principal -------------------
 
     def run(self):
@@ -231,6 +293,9 @@ class EyeTrackerThread(QThread):
         cam_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
 
         self.motor_pronto.emit()
+
+        # Estado anterior de detecção de rosto, para emitir o sinal só na transição
+        last_face_state = None
 
         try:
             while self.rodando:
@@ -248,7 +313,12 @@ class EyeTrackerThread(QThread):
                 ts_ms = int(time.time() * 1000)
                 results = face_landmarker.detect_for_video(mp_image, ts_ms)
 
-                if not results.face_landmarks:
+                rosto_presente = bool(results.face_landmarks)
+                if rosto_presente != last_face_state:
+                    self.face_detectada.emit(rosto_presente)
+                    last_face_state = rosto_presente
+
+                if not rosto_presente:
                     continue
 
                 face = results.face_landmarks[0]
@@ -386,8 +456,13 @@ class EyeTrackerThread(QThread):
         Y = self._yaw_degrees
         P = self._pitch_degrees
 
-        screen_x = int(((yaw_deg + Y) / (2 * Y)) * self.w_f)
-        screen_y = int(((P - pitch_deg) / (2 * P)) * self.h_f)
+        # Deadzone central + curva expo: cursor estável no centro, rápido nas bordas.
+        # Reduz fadiga e tremedeira sem sacrificar alcance.
+        norm_x = _response_curve(yaw_deg, Y, deadzone_frac=0.04, exponent=1.3)
+        norm_y = _response_curve(pitch_deg, P, deadzone_frac=0.04, exponent=1.3)
+
+        screen_x = int((norm_x + 1.0) * 0.5 * self.w_f)
+        screen_y = int((1.0 - norm_y) * 0.5 * self.h_f)
 
         screen_x = max(10, min(screen_x, self.w_f - 10))
         screen_y = max(10, min(screen_y, self.h_f - 10))

@@ -39,6 +39,7 @@ class SettingsView(QWidget):
     # Sinais disparados quando o usuário arrasta os sliders
     voltar_clicado = Signal()
     config_atualizada = Signal(dict) # Envia um dicionário com todos os valores
+    recalibrar_clicado = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -117,7 +118,26 @@ class SettingsView(QWidget):
         # Adiciona os cards na tela
         layout.addWidget(card_sensibilidade)
         layout.addWidget(card_interacao)
-        
+
+        # --- 3. CARD: CALIBRAÇÃO ---
+        card_calib = SettingsCard(
+            "Calibração",
+            "Refaça a calibração de 5 pontos se o cursor estiver impreciso."
+        )
+        self.btn_recalibrar = PushButton(
+            qta.icon('fa5s.expand', color='#FFFFFF'),
+            "Recalibrar Rastreamento"
+        )
+        self.btn_recalibrar.setStyleSheet(
+            "QPushButton { background-color: #4F46E5; color: white; border-radius: 10px; "
+            "padding: 12px 20px; font-size: 14px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #4338CA; }"
+        )
+        self.btn_recalibrar.setFixedHeight(48)
+        self.btn_recalibrar.clicked.connect(self.recalibrar_clicado.emit)
+        card_calib.layout.addWidget(self.btn_recalibrar)
+        layout.addWidget(card_calib)
+
         main_layout.addWidget(container)
 
         # Conecta todos os sliders a uma única função de emissão
@@ -141,3 +161,25 @@ class SettingsView(QWidget):
             "gravidade": int(self.slider_gravidade.value())
         }
         self.config_atualizada.emit(configs)
+
+    def carregar_configuracoes(self, configs):
+        """Aplica valores salvos aos sliders sem disparar config_atualizada repetidamente."""
+        if not configs:
+            return
+        # Bloqueia sinais enquanto seta os valores, depois emite uma única vez
+        for slider in (self.slider_x, self.slider_y, self.slider_dwell, self.slider_gravidade):
+            slider.blockSignals(True)
+        try:
+            self.slider_x.setValue(int(configs.get("sens_x", 1.3) * 100))
+            self.slider_y.setValue(int(configs.get("sens_y", 1.0) * 100))
+            self.slider_dwell.setValue(int(configs.get("dwell_time", 1.2) * 10))
+            self.slider_gravidade.setValue(int(configs.get("gravidade", 180)))
+            # Atualiza labels
+            self.atualizar_label(self.val_x, self.slider_x.value() / 100.0, "x")
+            self.atualizar_label(self.val_y, self.slider_y.value() / 100.0, "x")
+            self.atualizar_label(self.val_dwell, self.slider_dwell.value() / 10.0, "s")
+            self.atualizar_label(self.val_gravidade, self.slider_gravidade.value(), "px", int_val=True)
+        finally:
+            for slider in (self.slider_x, self.slider_y, self.slider_dwell, self.slider_gravidade):
+                slider.blockSignals(False)
+        self.emitir_configuracoes()

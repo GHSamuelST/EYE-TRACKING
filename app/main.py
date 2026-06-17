@@ -157,7 +157,7 @@ class SplashLoading(QWidget):
         self.spinner.setFixedSize(50, 50)
         self.spinner.setStrokeWidth(5)
         
-        self.label = SubtitleLabel("Inicializando EyeControl OS\nCarregando modelos e Câmera...")
+        self.label = SubtitleLabel("Inicializando EyeControl \nCarregando modelos e Câmera...")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         layout.addWidget(self.spinner, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -181,7 +181,7 @@ class EyeControlApp(FluentWindow):
             pass
 
         # --- ARMAZENAMENTO PERSISTENTE (sliders + calibração) ---
-        self.settings = QSettings("EyeControl", "EyeControlOS")
+        self.settings = QSettings("EyeControl", "EyeControl")
 
         # --- VARIÁVEIS DINÂMICAS DE INTERAÇÃO (Serão alteradas pelas Configs) ---
         self.alvo_atual = None
@@ -442,6 +442,8 @@ class EyeControlApp(FluentWindow):
                 cards_ativos = self.home_view.lista_cards
             elif self.apps_view.isVisible() and hasattr(self.apps_view, 'lista_cards'):
                 cards_ativos = self.apps_view.lista_cards
+            elif self.settings_view.isVisible() and hasattr(self.settings_view, 'lista_cards'):
+                cards_ativos = self.settings_view.lista_cards
         else: # Se o EyeControl estiver oculto (Modo Windows)
             if self.floating_menu.isVisible():
                 cards_ativos = self.floating_menu.lista_cards
@@ -486,6 +488,10 @@ class EyeControlApp(FluentWindow):
                 elif nome_botao == "Abrir Aplicativos":
                     self.switchTo(self.apps_view)
                     self._maybe_show_tutorial("apps")
+
+                # ROTA DE VOLTA (Apps / Configurações -> Home)
+                elif nome_botao == "Voltar para Home":
+                    self.switchTo(self.home_view)
                 
                 # ROTAS DE APPS (Magia do OS)
                 elif nome_botao == "Navegador Web":

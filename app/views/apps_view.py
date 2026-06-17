@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout
 from PySide6.QtCore import Qt
 from qfluentwidgets import TitleLabel, BodyLabel
 from components.action_card import ActionCard
+from components.nav_card import BackCard
 
 class AppsView(QWidget):
     def __init__(self, parent=None):
@@ -37,4 +38,11 @@ class AppsView(QWidget):
             grid_layout.addWidget(card, i // 2, i % 2)
 
         layout.addLayout(grid_layout)
+
+        # --- BOTÃO VOLTAR (selecionável pelo olhar) ---
+        layout.addSpacing(40)
+        self.card_voltar = BackCard("Voltar para Home")
+        self.lista_cards.append(self.card_voltar)
+        layout.addWidget(self.card_voltar, alignment=Qt.AlignmentFlag.AlignCenter)
+
         main_layout.addWidget(content_container, alignment=Qt.AlignmentFlag.AlignCenter)

@@ -76,7 +76,7 @@ class _DicaLinha(QFrame):
 
     def __init__(self, fa_icon, texto, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("background: transparent;")
+        self.setStyleSheet("QFrame { background: transparent; border: none; }")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 6, 0, 6)
         layout.setSpacing(16)
@@ -84,12 +84,12 @@ class _DicaLinha(QFrame):
         icon_label = QLabel()
         icon = qta.icon(fa_icon, color='#4F46E5')
         icon_label.setPixmap(icon.pixmap(28, 28))
-        icon_label.setStyleSheet("background: transparent;")
+        icon_label.setStyleSheet("background: transparent; border: none;")
         icon_label.setFixedWidth(34)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         texto_label = BodyLabel(texto)
-        texto_label.setStyleSheet("color: #374151; font-size: 16px; background: transparent;")
+        texto_label.setStyleSheet("color: #374151; font-size: 16px; background: transparent; border: none;")
         texto_label.setWordWrap(True)
 
         layout.addWidget(icon_label)
@@ -113,12 +113,12 @@ class _BotaoTutorial(QFrame):
         self.icon_label = QLabel()
         icon = qta.icon('fa5s.check', color='#FFFFFF')
         self.icon_label.setPixmap(icon.pixmap(22, 22))
-        self.icon_label.setStyleSheet("background: transparent;")
+        self.icon_label.setStyleSheet("background: transparent; border: none;")
 
         # title_label é lido pelo sistema de dwell do main.py
         self.title_label = SubtitleLabel("Entendi")
         self.title_label.setStyleSheet(
-            "font-size: 18px; font-weight: bold; color: #FFFFFF; background: transparent;"
+            "font-size: 18px; font-weight: bold; color: #FFFFFF; background: transparent; border: none;"
         )
 
         layout.addWidget(self.icon_label)
@@ -157,8 +157,9 @@ class TutorialOverlay(QWidget):
 
         self.painel = QFrame()
         self.painel.setFixedWidth(760)
+        self.painel.setObjectName("TutorialPanel")
         self.painel.setStyleSheet(
-            "QFrame { background-color: #FFFFFF; border-radius: 24px; border: 1px solid #E5E7EB; }"
+            "#TutorialPanel { background-color: #FFFFFF; border-radius: 24px; border: 1px solid #E5E7EB; }"
         )
         painel_layout = QVBoxLayout(self.painel)
         painel_layout.setContentsMargins(45, 40, 45, 40)
@@ -166,13 +167,13 @@ class TutorialOverlay(QWidget):
 
         self.label_passo = BodyLabel("")
         self.label_passo.setStyleSheet(
-            "color: #4F46E5; font-size: 14px; font-weight: bold; background: transparent;"
+            "color: #4F46E5; font-size: 14px; font-weight: bold; background: transparent; border: none;"
         )
         self.label_passo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.titulo = TitleLabel("")
         self.titulo.setStyleSheet(
-            "font-size: 28px; font-weight: 800; color: #111827; background: transparent;"
+            "font-size: 28px; font-weight: 800; color: #111827; background: transparent; border: none;"
         )
         self.titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.titulo.setWordWrap(True)

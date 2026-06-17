@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame
 from PySide6.QtCore import Qt, Signal
 from qfluentwidgets import TitleLabel, SubtitleLabel, BodyLabel, Slider, PushButton
 import qtawesome as qta
+from components.nav_card import BackCard
 
 class SettingsCard(QFrame):
     """ Card reutilizável para cada grupo de configuração """
@@ -137,6 +138,13 @@ class SettingsView(QWidget):
         self.btn_recalibrar.clicked.connect(self.recalibrar_clicado.emit)
         card_calib.layout.addWidget(self.btn_recalibrar)
         layout.addWidget(card_calib)
+
+        # --- BOTÃO VOLTAR (selecionável pelo olhar) ---
+        self.lista_cards = []
+        self.card_voltar = BackCard("Voltar para Home")
+        self.lista_cards.append(self.card_voltar)
+        layout.addSpacing(10)
+        layout.addWidget(self.card_voltar, alignment=Qt.AlignmentFlag.AlignCenter)
 
         main_layout.addWidget(container)
 

@@ -34,11 +34,11 @@ class ActionCard(ElevatedCardWidget):
 
         # --- TEXTOS (Usando a tipografia nativa do Fluent) ---
         self.title_label = SubtitleLabel(title)
-        self.title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
+        self.title_label.setStyleSheet("font-size: 22px; font-weight: bold; color: #111827; background: transparent;")
         
         self.desc_label = BodyLabel(description)
         self.desc_label.setWordWrap(True)
-        self.desc_label.setStyleSheet("color: #6B7280; font-size: 14px;")
+        self.desc_label.setStyleSheet("color: #6B7280; font-size: 14px; background: transparent;")
 
         # Montagem do Layout
         layout.addWidget(self.icon_box)

@@ -177,7 +177,6 @@ class EyeTrackerThread(QThread):
     calibracao_ponto = Signal(int, float)
     fase_validacao = Signal(int)
     calibracao_concluida = Signal()
-    face_detectada = Signal(bool)  # True quando rosto presente, False caso contrário
 
     TEMPO_POR_PONTO = 1.5     # segundos focado em cada ponto
     TEMPO_VALIDACAO = 3.0     # segundos da fase de validação final
@@ -294,9 +293,6 @@ class EyeTrackerThread(QThread):
 
         self.motor_pronto.emit()
 
-        # Estado anterior de detecção de rosto, para emitir o sinal só na transição
-        last_face_state = None
-
         try:
             while self.rodando:
                 ok, frame = cap.read()
@@ -313,12 +309,7 @@ class EyeTrackerThread(QThread):
                 ts_ms = int(time.time() * 1000)
                 results = face_landmarker.detect_for_video(mp_image, ts_ms)
 
-                rosto_presente = bool(results.face_landmarks)
-                if rosto_presente != last_face_state:
-                    self.face_detectada.emit(rosto_presente)
-                    last_face_state = rosto_presente
-
-                if not rosto_presente:
+                if not results.face_landmarks:
                     continue
 
                 face = results.face_landmarks[0]

@@ -158,7 +158,7 @@ class SettingsView(QWidget):
             "sens_x": self.slider_x.value() / 100.0,
             "sens_y": self.slider_y.value() / 100.0,
             "dwell_time": self.slider_dwell.value() / 10.0,
-            "gravidade": int(self.slider_gravidade.value())
+            "gravidade": int(self.slider_gravidade.value()),
         }
         self.config_atualizada.emit(configs)
 
@@ -167,8 +167,10 @@ class SettingsView(QWidget):
         if not configs:
             return
         # Bloqueia sinais enquanto seta os valores, depois emite uma única vez
-        for slider in (self.slider_x, self.slider_y, self.slider_dwell, self.slider_gravidade):
-            slider.blockSignals(True)
+        widgets_bloquear = (self.slider_x, self.slider_y, self.slider_dwell,
+                            self.slider_gravidade)
+        for w in widgets_bloquear:
+            w.blockSignals(True)
         try:
             self.slider_x.setValue(int(configs.get("sens_x", 1.3) * 100))
             self.slider_y.setValue(int(configs.get("sens_y", 1.0) * 100))
@@ -180,6 +182,6 @@ class SettingsView(QWidget):
             self.atualizar_label(self.val_dwell, self.slider_dwell.value() / 10.0, "s")
             self.atualizar_label(self.val_gravidade, self.slider_gravidade.value(), "px", int_val=True)
         finally:
-            for slider in (self.slider_x, self.slider_y, self.slider_dwell, self.slider_gravidade):
-                slider.blockSignals(False)
+            for w in widgets_bloquear:
+                w.blockSignals(False)
         self.emitir_configuracoes()

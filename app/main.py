@@ -17,6 +17,7 @@ import pyautogui
 from views import HomeView, CalibrationView, SettingsView, AppsView, OnboardingView
 from core import EyeTrackerThread
 from core import autostart
+from core import resource_path
 from components import ActionCard, FloatingMenu, TutorialOverlay
 
 os.environ["QT_API"] = "pyside6"
@@ -149,6 +150,7 @@ class SplashLoading(QWidget):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(400, 300)
+        self.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
         self.setStyleSheet("background-color: #F8F9FA; border-radius: 20px; border: 1px solid #E5E7EB;")
         
         layout = QVBoxLayout(self)
@@ -174,6 +176,7 @@ class EyeControlApp(FluentWindow):
         super().__init__()
         self.splash_ref = splash_ref
         self.setWindowTitle("EyeControl OS")
+        self.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
         setTheme(Theme.LIGHT)
 
         try:
@@ -653,7 +656,8 @@ class EyeControlApp(FluentWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
+    app.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
+
     splash = SplashLoading()
     splash.show()
     

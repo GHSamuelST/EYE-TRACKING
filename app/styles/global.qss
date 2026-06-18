@@ -1,0 +1,60 @@
+/* Fundo principal da aplicação */
+QMainWindow, QWidget#MainContent {
+    background-color: #F8F9FA;
+}
+
+/* Sidebar e seus itens */
+QFrame#Sidebar {
+    background-color: #F4F5F7;
+    border-right: 1px solid #E5E7EB;
+}
+
+/* Títulos Gerais */
+QLabel#MainTitle {
+    font-size: 38px;
+    font-weight: 800;
+    color: #111827;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+QLabel#SubTitle {
+    font-size: 18px;
+    color: #4B5563;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Estilos dos Cards de Ação */
+QFrame#ActionCard {
+    background-color: #F3F4F6;
+    border-radius: 24px;
+    border: 1px solid transparent;
+}
+
+/* O card ganha uma bordinha sutil e muda de cor quando olhamos pra ele */
+QFrame#ActionCard:hover {
+    background-color: #E5E7EB;
+    border: 1px solid #D1D5DB;
+}
+
+QLabel#CardTitle {
+    font-size: 24px;
+    font-weight: bold;
+    color: #111827;
+}
+
+QLabel#CardDescription {
+    font-size: 15px;
+    color: #6B7280;
+}
+
+/* Box do ícone dentro do card */
+QFrame#IconBox {
+    background-color: #E5E7EB; /* Cinza padrão */
+    border-radius: 16px;
+}
+
+/* Box do ícone com destaque (Azul) para o primeiro card */
+QFrame#IconBoxHighlight {
+    background-color: #E0E7FF; /* Azul claro do design */
+    border-radius: 16px;
+}

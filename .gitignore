@@ -30,7 +30,9 @@ MANIFEST
 #   Usually these files are written by a python script from a template
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+#   O EyeControl.spec é a receita de build do app e DEVE ser versionado.
+#   Ignoramos apenas .spec gerados automaticamente, não o nosso.
+# *.spec
 
 # Installer logs
 pip-log.txt

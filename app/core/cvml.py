@@ -12,6 +12,8 @@ from scipy.spatial.transform import Rotation as Rscipy
 
 from PySide6.QtCore import QThread, Signal
 
+from .resources import resource_path
+
 
 # ===================== Filtros e utilidades =====================
 
@@ -521,7 +523,7 @@ class EyeTrackerThread(QThread):
 
     @staticmethod
     def _criar_face_landmarker():
-        model_path = os.path.join(os.path.dirname(__file__), "face_landmarker.task")
+        model_path = resource_path("core/face_landmarker.task")
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.FaceLandmarkerOptions(
             base_options=base_options,

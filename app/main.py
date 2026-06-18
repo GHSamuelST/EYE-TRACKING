@@ -16,6 +16,8 @@ import pyautogui
 # Importações limpas graças aos nossos arquivos __init__.py
 from views import HomeView, CalibrationView, SettingsView, AppsView, OnboardingView
 from core import EyeTrackerThread
+from core import autostart
+from core import resource_path
 from components import ActionCard, FloatingMenu, TutorialOverlay
 
 os.environ["QT_API"] = "pyside6"
@@ -148,6 +150,7 @@ class SplashLoading(QWidget):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(400, 300)
+        self.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
         self.setStyleSheet("background-color: #F8F9FA; border-radius: 20px; border: 1px solid #E5E7EB;")
         
         layout = QVBoxLayout(self)
@@ -173,6 +176,7 @@ class EyeControlApp(FluentWindow):
         super().__init__()
         self.splash_ref = splash_ref
         self.setWindowTitle("EyeControl OS")
+        self.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
         setTheme(Theme.LIGHT)
 
         try:
@@ -229,6 +233,7 @@ class EyeControlApp(FluentWindow):
         self.settings_view.voltar_clicado.connect(lambda: self.switchTo(self.home_view))
         self.settings_view.config_atualizada.connect(self.aplicar_configuracoes)
         self.settings_view.recalibrar_clicado.connect(self.iniciar_tela_calibracao)
+        self.settings_view.iniciar_com_windows_alterado.connect(self.aplicar_iniciar_com_windows)
 
         # --- MOTOR DE RASTREAMENTO OCULAR (Thread Mock / Mouse) ---
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -258,6 +263,34 @@ class EyeControlApp(FluentWindow):
         # Persiste
         self.settings.setValue("sliders", json.dumps(configs))
 
+    def aplicar_iniciar_com_windows(self, ativado):
+        """Liga/desliga o início automático do app com o Windows."""
+        sucesso = autostart.definir(ativado)
+        if not sucesso:
+            # Reverte o switch caso a alteração no registro tenha falhado
+            self.settings_view.definir_iniciar_com_windows(autostart.esta_ativado())
+            self.home_view.atualizar_estado_autostart(autostart.esta_ativado())
+            return
+        self.settings.setValue("iniciar_com_windows", ativado)
+        self.home_view.atualizar_estado_autostart(ativado)
+
+    def _alternar_autostart_pelo_olhar(self):
+        """Alterna o início automático a partir do card da Home (operado por olhar).
+
+        Não usa popup de confirmação porque a Home é controlada apenas pelo
+        olhar e a caixa de diálogo exigiria clique de mouse.
+        """
+        novo_estado = not autostart.esta_ativado()
+        sucesso = autostart.definir(novo_estado)
+        if not sucesso:
+            novo_estado = autostart.esta_ativado()
+        else:
+            self.settings.setValue("iniciar_com_windows", novo_estado)
+
+        # Sincroniza as duas interfaces com o estado real
+        self.settings_view.definir_iniciar_com_windows(novo_estado)
+        self.home_view.atualizar_estado_autostart(novo_estado)
+
     def _restaurar_configuracoes_salvas(self):
         """Recarrega sliders e calibração do disco (se existirem)."""
         sliders_raw = self.settings.value("sliders", None)
@@ -276,6 +309,10 @@ class EyeControlApp(FluentWindow):
                 self.motor.set_calibration_state(state)
             except (ValueError, TypeError) as e:
                 print(f"[Settings] Não foi possível restaurar calibração: {e}")
+
+        # Sincroniza o switch "iniciar com o Windows" com o estado real do registro
+        self.settings_view.definir_iniciar_com_windows(autostart.esta_ativado())
+        self.home_view.atualizar_estado_autostart(autostart.esta_ativado())
 
     def _salvar_calibracao(self):
         """Persiste o estado de calibração após uma sessão de 5 pontos completa."""
@@ -488,11 +525,12 @@ class EyeControlApp(FluentWindow):
                 elif nome_botao == "Abrir Aplicativos":
                     self.switchTo(self.apps_view)
                     self._maybe_show_tutorial("apps")
+                elif nome_botao.startswith("Iniciar com Windows"):
+                    self._alternar_autostart_pelo_olhar()
 
                 # ROTA DE VOLTA (Apps / Configurações -> Home)
                 elif nome_botao == "Voltar para Home":
                     self.switchTo(self.home_view)
-                
                 # ROTAS DE APPS (Magia do OS)
                 elif nome_botao == "Navegador Web":
                     subprocess.Popen("start msedge", shell=True) # Abre o Edge
@@ -618,7 +656,8 @@ class EyeControlApp(FluentWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
+    app.setWindowIcon(QIcon(resource_path("assets/images/icone.ico")))
+
     splash = SplashLoading()
     splash.show()
     

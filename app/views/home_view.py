@@ -45,6 +45,7 @@ class HomeView(QWidget):
         card4 = ActionCard("Configurações", "Personalize a sensibilidade...", 'fa5s.sliders-h', False)
 
         self.lista_cards.extend([card1, card2, card3, card4]) # Salva para o Magnetismo achar!
+        self.card_iniciar_windows = card2  # Referência para refletir o estado do autostart
 
         for i, card in enumerate(self.lista_cards):
             row = i // 2
@@ -55,3 +56,14 @@ class HomeView(QWidget):
         
         # Adiciona o container (já montado) no meio exato da tela
         main_layout.addWidget(content_container, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def atualizar_estado_autostart(self, ativado):
+        """Atualiza o card 'Iniciar com Windows' para refletir o estado atual."""
+        if ativado:
+            self.card_iniciar_windows.title_label.setText("Iniciar com Windows ✓")
+            self.card_iniciar_windows.desc_label.setText(
+                "Ativado. O app abre junto com o Windows. Olhe para desativar.")
+        else:
+            self.card_iniciar_windows.title_label.setText("Iniciar com Windows")
+            self.card_iniciar_windows.desc_label.setText(
+                "Ative para o app iniciar junto com o Windows...")

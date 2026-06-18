@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame
 from PySide6.QtCore import Qt, Signal
-from qfluentwidgets import TitleLabel, SubtitleLabel, BodyLabel, Slider, PushButton
+from qfluentwidgets import TitleLabel, SubtitleLabel, BodyLabel, Slider, PushButton, SwitchButton, MessageBox
 import qtawesome as qta
 from components.nav_card import BackCard
 
@@ -41,6 +41,7 @@ class SettingsView(QWidget):
     voltar_clicado = Signal()
     config_atualizada = Signal(dict) # Envia um dicionário com todos os valores
     recalibrar_clicado = Signal()
+    iniciar_com_windows_alterado = Signal(bool)  # Toggle "iniciar com o Windows"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -139,6 +140,24 @@ class SettingsView(QWidget):
         card_calib.layout.addWidget(self.btn_recalibrar)
         layout.addWidget(card_calib)
 
+        # --- 4. CARD: INICIALIZAÇÃO ---
+        card_inicio = SettingsCard(
+            "Inicialização",
+            "Abra o EyeControl automaticamente sempre que você ligar o computador."
+        )
+        row_inicio = QHBoxLayout()
+        label_inicio = BodyLabel("Iniciar com o Windows")
+        label_inicio.setStyleSheet("color: #111827; font-size: 14px;")
+        self.switch_inicio = SwitchButton()
+        self.switch_inicio.setOnText("Ativado")
+        self.switch_inicio.setOffText("Desativado")
+        self.switch_inicio.checkedChanged.connect(self._confirmar_iniciar_com_windows)
+        row_inicio.addWidget(label_inicio)
+        row_inicio.addStretch()
+        row_inicio.addWidget(self.switch_inicio)
+        card_inicio.layout.addLayout(row_inicio)
+        layout.addWidget(card_inicio)
+
         # --- BOTÃO VOLTAR (selecionável pelo olhar) ---
         self.lista_cards = []
         self.card_voltar = BackCard("Voltar para Home")
@@ -159,6 +178,33 @@ class SettingsView(QWidget):
             label.setText(f"{int(valor)}{sufixo}")
         else:
             label.setText(f"{valor:.1f}{sufixo}")
+
+    def definir_iniciar_com_windows(self, ativado):
+        """Atualiza o switch sem disparar o sinal (usado ao carregar o estado salvo)."""
+        self.switch_inicio.blockSignals(True)
+        self.switch_inicio.setChecked(bool(ativado))
+        self.switch_inicio.blockSignals(False)
+
+    def _confirmar_iniciar_com_windows(self, ativado):
+        """Pede confirmação antes de alterar a inicialização automática."""
+        if ativado:
+            titulo = "Iniciar com o Windows"
+            corpo = ("O EyeControl será aberto automaticamente sempre que você "
+                     "ligar o computador. Deseja continuar?")
+        else:
+            titulo = "Desativar inicialização automática"
+            corpo = ("O EyeControl não será mais aberto automaticamente ao ligar "
+                     "o computador. Deseja continuar?")
+
+        caixa = MessageBox(titulo, corpo, self.window())
+        caixa.yesButton.setText("Confirmar")
+        caixa.cancelButton.setText("Cancelar")
+
+        if caixa.exec():
+            self.iniciar_com_windows_alterado.emit(ativado)
+        else:
+            # Usuário cancelou: reverte o switch sem reabrir o popup
+            self.definir_iniciar_com_windows(not ativado)
 
     def emitir_configuracoes(self):
         # Empacota tudo num dicionário e manda pra main.py
